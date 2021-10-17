@@ -6,17 +6,22 @@
 #include <sound/soc.h>
 #include <linux/dma-mapping.h>
 
+#include <linux/timer.h>
+
 struct vplat_info {
     unsigned int 	buf_max_size;
     unsigned int 	buffer_size;
     unsigned int 	period_size;
     char 			*addr;
 	unsigned int 	buf_pos;
-    unsigned int 	be_running;
+    unsigned int 	is_running;
+	struct snd_pcm_substream *substream;
 };
 
 static struct vplat_info playback_info;
 static struct vplat_info capture_info;
+
+static struct timer_list vtimer;
 
 static u64 dma_mask = DMA_BIT_MASK(32);
 
@@ -73,6 +78,64 @@ static struct snd_soc_dai_driver vplat_cpudai_dai = {
 	.ops	= NULL,
 };
 
+static int load_buff_period(void) {
+	struct snd_pcm_substream *cp_substream = capture_info.substream;
+	
+	if (playback_info.is_running) {
+		if(capture_info.addr == NULL) {
+			printk(KERN_ERR"catpure addr error!!!\n");
+			return -1;
+		}
+		memcpy(capture_info.addr+capture_info.buf_pos,
+				playback_info.addr+playback_info.buf_pos,
+				capture_info.period_size);
+		
+		capture_info.buf_pos += capture_info.period_size;
+		if (capture_info.buf_pos >= capture_info.buffer_size)
+			capture_info.buf_pos = 0;
+		
+		snd_pcm_period_elapsed(cp_substream);
+		return 0;
+	}
+	
+	return -1;
+}
+
+#ifdef setup_timer
+static void vplat_timer_function(unsigned long data) {
+#else	
+static void vplat_timer_function(struct timer_list *t) {
+#endif
+	
+	struct snd_pcm_substream *pb_substream = playback_info.substream;
+	
+	printk("-----%s----\n",__func__);
+	
+	if (capture_info.is_running) {
+		load_buff_period();
+	}
+        
+    /* 更新状态信息 */
+    playback_info.buf_pos += playback_info.period_size;
+    if (playback_info.buf_pos >= playback_info.buffer_size)
+        playback_info.buf_pos = 0;
+    
+    /* 更新hw_ptr等信息,
+     * 并且判断:如果buffer里没有数据了,则调用trigger来停止DMA 
+     */
+    snd_pcm_period_elapsed(pb_substream);  
+
+    if (playback_info.is_running) {
+        /* 如果还有数据
+         * 1. 加载下一个period 
+         * 2. 再次启动定时器
+         */
+		
+        mod_timer(&vtimer, jiffies + HZ/100);
+    }
+
+
+}
 
 
 static int vplat_pcm_open(struct snd_pcm_substream *substream) {
@@ -98,6 +161,7 @@ static int vplat_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	unsigned long totbytes = params_buffer_bytes(params);
     
+	printk("-----%s----\n",__func__);
 
     /* pcm_new分配了很大的BUFFER
      * params决定使用多大
@@ -119,18 +183,23 @@ static int vplat_pcm_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
+/* 准备数据传输 */
 static int vplat_pcm_prepare(struct snd_pcm_substream *substream)
 {
-    /* 准备数据传输 */
+	printk("-----%s----\n",__func__);
+    
 
     /* 复位各种状态信息 */
-    playback_info.buf_pos = 0;
-    playback_info.be_running = 0;
-	
-	capture_info.buf_pos = 0;
-    capture_info.be_running = 0;
-    
-    /* 加载第1个period */
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		playback_info.buf_pos = 0;
+		playback_info.is_running = 0;
+	} else {
+		capture_info.buf_pos = 0;
+		capture_info.is_running = 0;
+		
+		/* 加载第1个period */
+		//load_buff_period();
+    }
     
 
 	return 0;
@@ -140,22 +209,30 @@ static int vplat_pcm_prepare(struct snd_pcm_substream *substream)
 static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	int ret = 0;
+	printk("-----%s----\n",__func__);
+	
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		switch (cmd) {
 		case SNDRV_PCM_TRIGGER_START:
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			/* 启动定时器, 模拟数据传输 */
-			playback_info.be_running = 1;
-			
+			playback_info.is_running = 1;
+#ifdef setup_timer
+			setup_timer(&vtimer, vplat_timer_function, 0);
+#else
+			timer_setup(&vtimer, vplat_timer_function, 0);
+#endif
+			vtimer.expires = jiffies + HZ/100;
+			add_timer(&vtimer);
 			break;
 
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 			/* 停止定时器 */
-			playback_info.be_running = 0;
-			
+			playback_info.is_running = 0;
+			del_timer(&vtimer);
 			break;
 
 		default:
@@ -168,7 +245,7 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			/* catpure开始接收数据 */
-			capture_info.be_running = 1;
+			capture_info.is_running = 1;
 			
 			break;
 
@@ -176,7 +253,7 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 			/* catpure停止接收数据 */
-			capture_info.be_running = 0;
+			capture_info.is_running = 0;
 			
 			break;
 
@@ -229,8 +306,8 @@ static int vplat_pcm_new(struct snd_soc_pcm_runtime *rtd) {
 		}
 		
 		playback_info.buf_max_size = vplat_pcm_hardware.buffer_bytes_max;
-		
 		substream = pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
+		playback_info.substream = substream;
 		buf = &substream->dma_buffer;
 
     	buf->dev.type = SNDRV_DMA_TYPE_DEV;
@@ -252,6 +329,7 @@ static int vplat_pcm_new(struct snd_soc_pcm_runtime *rtd) {
 		capture_info.buf_max_size = vplat_pcm_hardware.buffer_bytes_max;
 		
 		substream = pcm->streams[SNDRV_PCM_STREAM_CAPTURE].substream;
+		capture_info.substream = substream;
 		buf = &substream->dma_buffer;
 
     	buf->dev.type = SNDRV_DMA_TYPE_DEV;
