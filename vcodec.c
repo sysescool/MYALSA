@@ -10,40 +10,120 @@ static int vcodec_probe(struct snd_soc_codec *codec)
 {
 	//int ret;
 	printk("-----%s----\n",__func__);
+	
+	/* 1.加controls */
+	
+	/* 2.初始化codec */
 
+	return 0;
+}
+
+static int vcodec_remove(struct snd_soc_codec *codec)
+{
+	printk("-----%s----\n",__func__);
 	return 0;
 }
 
 static struct snd_soc_codec_driver soc_vcodec_drv = {
 	.probe = vcodec_probe,
-	//.remove = vcodec_remove,
-	//.read = vcodec_read,
-	//.write = vcodec_write,
-	//.ignore_pmdown_time = 1,
+	.remove = vcodec_remove,
+	//.read = vcodec_reg_read,
+	//.write = vcodec_reg_write,
+	.ignore_pmdown_time = 1,
 };
+
+
+static int vcodec_startup(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai) {
+	printk("-----%s----\n",__func__);
+	return 0;
+}
+
+static int vcodec_hw_params(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params,
+				struct snd_soc_dai *dai)
+{
+    /* 根据params的值,设置codec的寄存器 
+     * 比如时钟设置,格式,采样率等
+     */
+	
+	printk("-----%s----\n",__func__);
+
+    return 0;
+}
+
+static void vcodec_shutdown(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai) {
+	printk("-----%s----\n",__func__);				
+}
+
+static int vcodec_trigger(struct snd_pcm_substream *substream,
+				int cmd, struct snd_soc_dai *dai)
+{
+
+	switch (cmd) {
+	case SNDRV_PCM_TRIGGER_START:
+	case SNDRV_PCM_TRIGGER_RESUME:
+	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+			printk("-----%s: playback start----\n",__func__);
+		} else {
+			printk("-----%s: catpure start----\n",__func__);
+		}
+		break;
+	case SNDRV_PCM_TRIGGER_STOP:
+	case SNDRV_PCM_TRIGGER_SUSPEND:
+	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+			printk("-----%s:playback stop----\n",__func__);
+		} else {
+			printk("-----%s:catpure stop----\n",__func__);
+		}
+
+		break;
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+
+static int vcodec_prepare(struct snd_pcm_substream *substream,
+				struct snd_soc_dai *dai) {
+	printk("-----%s----\n",__func__);
+	return 0;
+}
+
+static const struct snd_soc_dai_ops vcodec_dai_ops = {
+	.startup		= vcodec_startup,
+	.hw_params		= vcodec_hw_params,
+	.shutdown		= vcodec_shutdown,
+	.trigger		= vcodec_trigger,
+	.prepare		= vcodec_prepare,
+};
+
 
 static struct snd_soc_dai_driver vcodec_dai[] = {
 	{
 		.name	= "vcodec_dai",
 		.playback = {
-			.stream_name = "Playback",
 			.channels_min = 1,
 			.channels_max = 2,
-			.rates	= SNDRV_PCM_RATE_8000_192000
-				| SNDRV_PCM_RATE_KNOT,
-			.formats = SNDRV_PCM_FMTBIT_S16_LE
-				| SNDRV_PCM_FMTBIT_S24_LE,
+			.rates = SNDRV_PCM_RATE_8000_192000 |
+				SNDRV_PCM_RATE_KNOT,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE |
+				SNDRV_PCM_FMTBIT_S24_LE	|
+				SNDRV_PCM_FMTBIT_S32_LE,
 		},
 		.capture = {
-			.stream_name = "Capture",
 			.channels_min = 1,
 			.channels_max = 2,
-			.rates = SNDRV_PCM_RATE_8000_48000
-				| SNDRV_PCM_RATE_KNOT,
-			.formats = SNDRV_PCM_FMTBIT_S16_LE
-				| SNDRV_PCM_FMTBIT_S24_LE,
+			.rates = SNDRV_PCM_RATE_8000_48000 |
+				SNDRV_PCM_RATE_KNOT,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE |
+				SNDRV_PCM_FMTBIT_S24_LE	|
+				SNDRV_PCM_FMTBIT_S32_LE,
 		},
-		//.ops = &vcodec_dai_ops,
+		.ops = &vcodec_dai_ops,
 	},
 };
 
@@ -68,8 +148,7 @@ static int codec_remove(struct platform_device *pdev){
 	return 0;
 }
 
-static void codec_pdev_release(struct device *dev)
-{
+static void codec_pdev_release(struct device *dev) {
 }
 
 static struct platform_device codec_pdev = {
@@ -85,8 +164,7 @@ static struct platform_driver codec_pdrv = {
 	},
 };
 
-static int __init codec_init(void)
-{
+static int __init codec_init(void) {
 	int ret;
 
 	ret = platform_device_register(&codec_pdev);
@@ -100,8 +178,7 @@ static int __init codec_init(void)
 	return ret;
 }
 
-static void __exit codec_exit(void)
-{
+static void __exit codec_exit(void) {
 	platform_driver_unregister(&codec_pdrv);
 	platform_device_unregister(&codec_pdev);
 }

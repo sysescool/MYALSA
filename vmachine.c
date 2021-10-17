@@ -5,11 +5,64 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 
+static int my_card_init(struct snd_soc_pcm_runtime *rtd)
+{
+	printk("-----%s----\n",__func__);
+	return 0;
+}
 
+static int my_card_hw_params(struct snd_pcm_substream *substream,
+				struct snd_pcm_hw_params *params) {
 
-//static struct snd_soc_ops my_card_ops = {
-//	.hw_params = my_card_hw_params,
-//};
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	//struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	struct snd_soc_card *card = rtd->card;
+	unsigned int freq;
+	//int ret;
+	int stream_flag;
+
+	switch (params_rate(params)) {
+	case	8000:
+	case	12000:
+	case	16000:
+	case	24000:
+	case	32000:
+	case	48000:
+	case	96000:
+	case	192000:
+		freq = 24576000;
+		break;
+	case	11025:
+	case	22050:
+	case	44100:
+		freq = 22579200;
+		break;
+	default:
+		dev_err(card->dev, "invalid rate setting\n");
+		return -EINVAL;
+	}
+
+	/* the substream type: 0->playback, 1->capture */
+	stream_flag = substream->stream;
+
+	/* 通过snd_soc_dai_set_sysclk()设置codec的sysclk*/
+	//if (freq == 22579200) {
+	//	if (stream_flag == 0) {
+	//		ret = snd_soc_dai_set_sysclk(codec_dai, 0, freq, 0);
+	//		if (ret < 0) {
+	//			dev_err(card->dev, "sndcodec:set codec dai sysclk faided, freq:%d\n", freq);
+	//			return ret;
+	//		}
+	//	}
+	//}
+	
+
+	return 0;
+}
+
+static struct snd_soc_ops my_card_ops = {
+	.hw_params = my_card_hw_params,
+};
 
 static struct snd_soc_dai_link my_card_dai_link[] = {
 	{
@@ -19,8 +72,8 @@ static struct snd_soc_dai_link my_card_dai_link[] = {
 		.codec_dai_name = "vcodec_dai",
 		.cpu_dai_name	= "vplat.0",
 		.platform_name	= "vplat.0",
-//		.init		= my_card_init,
-//		.ops		= &my_card_ops,
+		.init		= my_card_init,
+		.ops		= &my_card_ops,
 	},
 };
 
