@@ -9,7 +9,7 @@
 static int vcodec_probe(struct snd_soc_codec *codec)
 {
 	//int ret;
-	printk("-----%s----\n",__func__);
+	printk("-%s,line:%d\n",__func__,__LINE__);
 	
 	/* 1.加controls */
 	
@@ -20,7 +20,7 @@ static int vcodec_probe(struct snd_soc_codec *codec)
 
 static int vcodec_remove(struct snd_soc_codec *codec)
 {
-	printk("-----%s----\n",__func__);
+	printk("-%s,line:%d\n",__func__,__LINE__);
 	return 0;
 }
 
@@ -35,7 +35,7 @@ static struct snd_soc_codec_driver soc_vcodec_drv = {
 
 static int vcodec_startup(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai) {
-	printk("-----%s----\n",__func__);
+	printk("-%s,line:%d\n",__func__,__LINE__);
 	return 0;
 }
 
@@ -47,14 +47,14 @@ static int vcodec_hw_params(struct snd_pcm_substream *substream,
      * 比如时钟设置,格式,采样率等
      */
 	
-	printk("-----%s----\n",__func__);
+	printk("-%s,line:%d\n",__func__,__LINE__);
 
     return 0;
 }
 
 static void vcodec_shutdown(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai) {
-	printk("-----%s----\n",__func__);				
+	printk("-%s,line:%d\n",__func__,__LINE__);				
 }
 
 static int vcodec_trigger(struct snd_pcm_substream *substream,
@@ -66,18 +66,18 @@ static int vcodec_trigger(struct snd_pcm_substream *substream,
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-			printk("-----%s: playback start----\n",__func__);
+			printk("-%s: playback start\n",__func__);
 		} else {
-			printk("-----%s: catpure start----\n",__func__);
+			printk("-%s: catpure start\n",__func__);
 		}
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-			printk("-----%s:playback stop----\n",__func__);
+			printk("-%s:playback stop\n",__func__);
 		} else {
-			printk("-----%s:catpure stop----\n",__func__);
+			printk("-%s:catpure stop\n",__func__);
 		}
 
 		break;
@@ -89,16 +89,16 @@ static int vcodec_trigger(struct snd_pcm_substream *substream,
 
 static int vcodec_prepare(struct snd_pcm_substream *substream,
 				struct snd_soc_dai *dai) {
-	printk("-----%s----\n",__func__);
+	printk("-%s,line:%d\n",__func__,__LINE__);
 	return 0;
 }
 
 static const struct snd_soc_dai_ops vcodec_dai_ops = {
 	.startup		= vcodec_startup,
 	.hw_params		= vcodec_hw_params,
-	.shutdown		= vcodec_shutdown,
-	.trigger		= vcodec_trigger,
 	.prepare		= vcodec_prepare,
+	.trigger		= vcodec_trigger,
+	.shutdown		= vcodec_shutdown,
 };
 
 
@@ -130,7 +130,7 @@ static struct snd_soc_dai_driver vcodec_dai[] = {
 static int codec_probe(struct platform_device *pdev) {
 	int ret = 0;
 	
-	printk("-----%s----\n",__func__);
+	printk("-%s,line:%d\n",__func__,__LINE__);
 	
 	ret = snd_soc_register_codec(&pdev->dev, &soc_vcodec_drv,
 				vcodec_dai, ARRAY_SIZE(vcodec_dai));
@@ -143,8 +143,8 @@ static int codec_probe(struct platform_device *pdev) {
 }
 
 static int codec_remove(struct platform_device *pdev){
-	printk("-----%s----\n",__func__);
-
+	printk("-%s,line:%d\n",__func__,__LINE__);
+	snd_soc_unregister_codec(&pdev->dev);
 	return 0;
 }
 
@@ -182,8 +182,6 @@ static void __exit codec_exit(void) {
 	platform_driver_unregister(&codec_pdrv);
 	platform_device_unregister(&codec_pdev);
 }
-
-
 
 module_init(codec_init);
 module_exit(codec_exit);

@@ -7,7 +7,7 @@
 
 static int my_card_init(struct snd_soc_pcm_runtime *rtd)
 {
-	printk("-----%s----\n",__func__);
+	printk("%s,line:%d\n",__func__,__LINE__);
 	return 0;
 }
 
@@ -20,7 +20,9 @@ static int my_card_hw_params(struct snd_pcm_substream *substream,
 	unsigned int freq;
 	//int ret;
 	int stream_flag;
-
+	
+	printk("%s,line:%d\n",__func__,__LINE__);
+	
 	switch (params_rate(params)) {
 	case	8000:
 	case	12000:
@@ -90,7 +92,7 @@ static int vmachine_probe(struct platform_device *pdev) {
 	int ret = 0;
 	struct snd_soc_card *card = &snd_soc_my_card;
 	
-	printk("-----%s----\n",__func__);
+	printk("%s,line:%d\n",__func__,__LINE__);
 	
 	/* register the soc card */
 	card->dev = &pdev->dev;
@@ -100,13 +102,15 @@ static int vmachine_probe(struct platform_device *pdev) {
 		dev_err(&pdev->dev, "snd_soc_register_card failed %d\n", ret);
 		return -1;
 	}
+	platform_set_drvdata(pdev,card);
 	
 	return ret;
 }
 
 static int vmachine_remove(struct platform_device *pdev){
-	printk("-----%s----\n",__func__);
-
+	struct snd_soc_card *card = platform_get_drvdata(pdev);
+	printk("%s,line:%d\n",__func__,__LINE__);
+	snd_soc_unregister_card(card);
 	return 0;
 }
 
@@ -147,8 +151,6 @@ static void __exit vmachine_exit(void)
 	platform_driver_unregister(&vmachine_pdrv);
 	platform_device_unregister(&vmachine_pdev);
 }
-
-
 
 module_init(vmachine_init);
 module_exit(vmachine_exit);
