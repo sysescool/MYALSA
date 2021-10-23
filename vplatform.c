@@ -27,7 +27,7 @@ static struct timer_list vtimer;
 static void work_function(struct work_struct *work);
 DECLARE_WORK(vplat_work,work_function);
 
-#define DUMP_PLAYBACK
+//#define DUMP_PLAYBACK
 #ifdef DUMP_PLAYBACK
 static struct file *fp;
 #define DUMP_DIR "/home/playback.pcm"
@@ -266,9 +266,11 @@ static int vplat_pcm_hw_params(struct snd_pcm_substream *substream,
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		playback_info.buffer_size = totbytes;
 		playback_info.period_size = params_period_bytes(params);
+		printk("playback period size : %d\n",playback_info.period_size);
 	} else {
 		capture_info.buffer_size = totbytes;
 		capture_info.period_size = params_period_bytes(params);
+		printk("capture period size : %d\n",capture_info.period_size);
 	}
 	
 	//设置runtime->dma_area

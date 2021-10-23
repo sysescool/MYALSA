@@ -21,7 +21,7 @@ static int my_card_hw_params(struct snd_pcm_substream *substream,
 	//int ret;
 	int stream_flag;
 	
-	printk("%s,line:%d\n",__func__,__LINE__);
+	printk("%s,rate:%d\n",__func__,params_rate(params));
 	
 	switch (params_rate(params)) {
 	case	8000:
