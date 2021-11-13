@@ -4,18 +4,45 @@
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
+#include <sound/soc-dapm.h>
+#include <sound/initval.h>
+#include <sound/tlv.h>
 
+#define DAC_VOL_L		8
+#define DAC_VOL_R		0
+
+enum reg {
+	VCODEC_DAC_VOL_CTRL,
+	VCODEC_CTRL_NUM
+};
+
+static u32 reg_data[VCODEC_CTRL_NUM];
+
+
+
+static const DECLARE_TLV_DB_SCALE(dac_vol_tlv, -11925, 75, 0);
+
+static const struct snd_kcontrol_new vcodec_codec_controls[] = {
+	SOC_DOUBLE_TLV("DAC volume", VCODEC_DAC_VOL_CTRL, DAC_VOL_L, DAC_VOL_R,
+		       0xFF, 0, dac_vol_tlv),
+};
 
 static int vcodec_probe(struct snd_soc_codec *codec)
 {
-	//int ret;
+	int ret = 0;
 	printk("-%s,line:%d\n",__func__,__LINE__);
 	
 	/* 1.加controls */
+	ret = snd_soc_add_codec_controls(codec, vcodec_codec_controls,
+					ARRAY_SIZE(vcodec_codec_controls));
+	if(ret < 0) {
+		printk(KERN_ERR"vcodec add controls error!!!\n");
+		return ret;
+	}
 	
 	/* 2.初始化codec */
 
-	return 0;
+	return ret;
 }
 
 static int vcodec_remove(struct snd_soc_codec *codec)
@@ -24,11 +51,39 @@ static int vcodec_remove(struct snd_soc_codec *codec)
 	return 0;
 }
 
+static unsigned int vcodec_reg_read(struct snd_soc_codec *codec,
+					unsigned int reg)
+{
+	
+	if(reg >= VCODEC_CTRL_NUM) {
+		printk(KERN_ERR"%s: parameter error!!!\n",__func__);
+		return 0;
+	}
+	
+	printk("-%s,line:%d,reg_data[%d] = 0x%x\n",__func__,__LINE__,reg,reg_data[reg]);
+
+	return reg_data[reg];
+}
+
+static int vcodec_reg_write(struct snd_soc_codec *codec,
+				unsigned int reg, unsigned int val)
+{
+	printk("-%s,line:%d,reg=0x%x,val=0x%x\n",__func__,__LINE__,reg,val);
+	if(reg >= VCODEC_CTRL_NUM) {
+		printk(KERN_ERR"%s: parameter error!!!\n",__func__);
+		return -1;
+	}
+	
+	reg_data[reg] = val;
+
+	return 0;
+};
+
 static struct snd_soc_codec_driver soc_vcodec_drv = {
 	.probe = vcodec_probe,
 	.remove = vcodec_remove,
-	//.read = vcodec_reg_read,
-	//.write = vcodec_reg_write,
+	.read = vcodec_reg_read,
+	.write = vcodec_reg_write,
 	.ignore_pmdown_time = 1,
 };
 
