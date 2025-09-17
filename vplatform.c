@@ -33,7 +33,8 @@ static struct snd_soc_dai_driver plat_cpudai_dai = {
 	.ops	= NULL,
 };
 
-static struct snd_soc_platform_driver plat_soc_drv = {
+static struct snd_soc_component_driver plat_soc_drv = {
+	.name = "plat-soc",
 	//.ops		= &s3c2440_dma_ops,
 	//.pcm_new	= s3c2440_dma_new,
 	//.pcm_free	= s3c2440_dma_free,
@@ -54,9 +55,9 @@ static int plat_probe(struct platform_device *pdev) {
 	}
 	
 	
-	ret = snd_soc_register_platform(&pdev->dev, &plat_soc_drv);
+	ret = snd_soc_register_component(&pdev->dev, &plat_soc_drv, NULL, 0);
 	if (ret < 0) {
-		dev_err(&pdev->dev, "Could not register platform: %d\n", ret);
+		dev_err(&pdev->dev, "Could not register platform component: %d\n", ret);
 		ret = -EBUSY;
 		return ret;
 	}
