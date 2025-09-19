@@ -50,48 +50,11 @@ static const struct snd_soc_component_driver vplat_cpudai_component = {
 	.name = "vplat-cpudai",
 };
 
-static struct snd_soc_dai_driver vplat_cpudai_dai = {
-	.name	= "vplat-cpudai",
-	.playback = {
-		.channels_min = 1,
-		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_8000_192000 |
-			SNDRV_PCM_RATE_KNOT,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE |
-			SNDRV_PCM_FMTBIT_S24_LE	|
-			SNDRV_PCM_FMTBIT_S32_LE,
-	},
-	.capture = {
-		.channels_min = 1,
-		.channels_max = 2,
-		.rates = SNDRV_PCM_RATE_8000_48000 |
-			SNDRV_PCM_RATE_KNOT,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE |
-			SNDRV_PCM_FMTBIT_S24_LE	|
-			SNDRV_PCM_FMTBIT_S32_LE,
-	},
-	.ops	= NULL,
-};
+/* Forward declarations removed - using new ASoC API */
 
 
 
-static int vplat_pcm_open(struct snd_pcm_substream *substream) {
-	struct snd_pcm_runtime *runtime = substream->runtime;
-    //int ret;
-
-    /* 设置属性 */
-	snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS);
-	snd_soc_set_runtime_hwparams(substream, &vplat_pcm_hardware);
-    
-
-	return 0;
-}
-
-int vplat_pcm_close(struct snd_pcm_substream *substream) {
-	/* 注销定时器 */
-
-	return 0;
-}
+/* Legacy PCM open/close functions removed - handled by new ASoC API */
 
 static int vplat_pcm_hw_params(struct snd_pcm_substream *substream, 
 			struct snd_pcm_hw_params *params) {
@@ -190,15 +153,7 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	return ret;
 }
 
-/* 返回结果是frame */
-static snd_pcm_uframes_t vplat_pcm_pointer(struct snd_pcm_substream *substream)
-{
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		return bytes_to_frames(substream->runtime, playback_info.buf_pos);
-	else {
-		return bytes_to_frames(substream->runtime, capture_info.buf_pos);
-	}
-}
+/* Legacy PCM pointer function removed - handled by new ASoC API */
 
 
 
@@ -284,22 +239,74 @@ static void vplat_pcm_free_buffers(struct snd_pcm *pcm){
 	}
 }
 
-static struct snd_pcm_ops vplat_pcm_ops = {
-	.open		= vplat_pcm_open,
-	.close		= vplat_pcm_close,
-	.ioctl		= snd_pcm_lib_ioctl,
-	.hw_params	= vplat_pcm_hw_params,
-	.prepare    = vplat_pcm_prepare,
-	.trigger	= vplat_pcm_trigger,
-	.pointer	= vplat_pcm_pointer,
-	//.mmap		= vplat_pcm_mmap,
+/* Legacy PCM ops - no longer used in new ASoC API */
+
+/* New API compatible functions */
+static int vplat_dai_hw_params(struct snd_pcm_substream *substream,
+			       struct snd_pcm_hw_params *params,
+			       struct snd_soc_dai *dai)
+{
+	return vplat_pcm_hw_params(substream, params);
+}
+
+static int vplat_dai_prepare(struct snd_pcm_substream *substream,
+			     struct snd_soc_dai *dai)
+{
+	return vplat_pcm_prepare(substream);
+}
+
+static int vplat_dai_trigger(struct snd_pcm_substream *substream, int cmd,
+			     struct snd_soc_dai *dai)
+{
+	return vplat_pcm_trigger(substream, cmd);
+}
+
+static struct snd_soc_dai_ops vplat_dai_ops = {
+	.hw_params	= vplat_dai_hw_params,
+	.prepare	= vplat_dai_prepare,
+	.trigger	= vplat_dai_trigger,
 };
+
+static struct snd_soc_dai_driver vplat_cpudai_dai = {
+	.name	= "vplat-cpudai",
+	.playback = {
+		.channels_min = 1,
+		.channels_max = 2,
+		.rates = SNDRV_PCM_RATE_8000_192000 |
+			SNDRV_PCM_RATE_KNOT,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE |
+			SNDRV_PCM_FMTBIT_S24_LE	|
+			SNDRV_PCM_FMTBIT_S32_LE,
+	},
+	.capture = {
+		.channels_min = 1,
+		.channels_max = 2,
+		.rates = SNDRV_PCM_RATE_8000_48000 |
+			SNDRV_PCM_RATE_KNOT,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE |
+			SNDRV_PCM_FMTBIT_S24_LE	|
+			SNDRV_PCM_FMTBIT_S32_LE,
+	},
+	.ops	= &vplat_dai_ops,
+};
+
+/* New API compatible PCM functions */
+static int vplat_pcm_construct(struct snd_soc_component *component,
+			       struct snd_soc_pcm_runtime *rtd)
+{
+	return vplat_pcm_new(rtd);
+}
+
+static void vplat_pcm_destruct(struct snd_soc_component *component,
+			       struct snd_pcm *pcm)
+{
+	vplat_pcm_free_buffers(pcm);
+}
 
 static struct snd_soc_component_driver vplat_soc_drv = {
 	.name = "vplat",
-	.ops		= &vplat_pcm_ops,
-	.pcm_new	= vplat_pcm_new,
-	.pcm_free	= vplat_pcm_free_buffers,
+	.pcm_construct = vplat_pcm_construct,
+	.pcm_destruct = vplat_pcm_destruct,
 };
 
 
