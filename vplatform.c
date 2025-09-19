@@ -295,7 +295,8 @@ static struct snd_pcm_ops vplat_pcm_ops = {
 	//.mmap		= vplat_pcm_mmap,
 };
 
-static struct snd_soc_platform_driver vplat_soc_drv = {
+static struct snd_soc_component_driver vplat_soc_drv = {
+	.name = "vplat",
 	.ops		= &vplat_pcm_ops,
 	.pcm_new	= vplat_pcm_new,
 	.pcm_free	= vplat_pcm_free_buffers,
@@ -316,7 +317,7 @@ static int vplat_probe(struct platform_device *pdev) {
 	}
 	
 	
-	ret = snd_soc_register_platform(&pdev->dev, &vplat_soc_drv);
+	ret = snd_soc_register_component(&pdev->dev, &vplat_soc_drv, NULL, 0);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Could not register platform: %d\n", ret);
 		ret = -EBUSY;
