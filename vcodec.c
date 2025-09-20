@@ -15,7 +15,7 @@ static int vcodec_probe(struct snd_soc_component *component)
 }
 
 static struct snd_soc_component_driver soc_vcodec_drv = {
-	.name = "vcodec",
+	.name = "vcodec_drv",
 	.probe = vcodec_probe,
 	//.remove = vcodec_remove,
 	//.read = vcodec_read,
