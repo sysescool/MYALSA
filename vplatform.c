@@ -230,7 +230,9 @@ static void start_timer(void) {
 }
 
 
-static int vplat_pcm_open(struct snd_pcm_substream *substream) {
+static int vplat_pcm_open(struct snd_soc_component *component,
+		struct snd_pcm_substream *substream)
+{
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	printk("%s,line:%d\n",__func__,__LINE__);
 
@@ -244,14 +246,18 @@ static int vplat_pcm_open(struct snd_pcm_substream *substream) {
 	return 0;
 }
 
-int vplat_pcm_close(struct snd_pcm_substream *substream) {
+static int vplat_pcm_close(struct snd_soc_component *component,
+		struct snd_pcm_substream *substream)
+{
 	printk("%s,line:%d\n",__func__,__LINE__);
 
 	return 0;
 }
 
-static int vplat_pcm_hw_params(struct snd_pcm_substream *substream, 
-			struct snd_pcm_hw_params *params) {
+static int vplat_pcm_hw_params(struct snd_soc_component *component,
+		struct snd_pcm_substream *substream, 
+		struct snd_pcm_hw_params *params)
+{
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	unsigned long totbytes = params_buffer_bytes(params);
     
@@ -278,7 +284,8 @@ static int vplat_pcm_hw_params(struct snd_pcm_substream *substream,
 }
 
 /* 准备数据传输 */
-static int vplat_pcm_prepare(struct snd_pcm_substream *substream)
+static int vplat_pcm_prepare(struct snd_soc_component *component,
+	struct snd_pcm_substream *substream)
 {
 	//printk("%s,line:%d\n",__func__,__LINE__);
     
@@ -299,7 +306,8 @@ static int vplat_pcm_prepare(struct snd_pcm_substream *substream)
 }
 
 /* 根据cmd启动或停止数据传输 */
-static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
+static int vplat_pcm_trigger(struct snd_soc_component *component,
+	struct snd_pcm_substream *substream, int cmd)
 {
 	int ret = 0;
 	static u8 is_timer_run = 0;
@@ -373,7 +381,8 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 }
 
 /* 返回结果是frame */
-static snd_pcm_uframes_t vplat_pcm_pointer(struct snd_pcm_substream *substream)
+static snd_pcm_uframes_t vplat_pcm_pointer(struct snd_soc_component *component, 
+	struct snd_pcm_substream *substream)
 {
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		return bytes_to_frames(substream->runtime, playback_info.buf_pos);
@@ -492,7 +501,8 @@ static void vplat_pcm_free_buffers(struct snd_pcm *pcm){
 //	return ret;
 //}
 
-static int vplat_pcm_mmap(struct snd_pcm_substream *substream,
+static int vplat_pcm_mmap(struct snd_soc_component *component,
+	struct snd_pcm_substream *substream,
 	struct vm_area_struct *vma)
 {
 	struct snd_pcm_runtime *runtime = NULL;
@@ -510,23 +520,38 @@ static int vplat_pcm_mmap(struct snd_pcm_substream *substream,
 
 }
 
-static struct snd_pcm_ops vplat_pcm_ops = {
+/* New API compatible PCM functions */
+static int vplat_pcm_construct(struct snd_soc_component *component,
+	struct snd_soc_pcm_runtime *rtd)
+{
+	return vplat_pcm_new(rtd);
+}
+
+static void vplat_pcm_destruct(struct snd_soc_component *component,
+	struct snd_pcm *pcm)
+{
+	vplat_pcm_free_buffers(pcm);
+}
+
+static int vplat_pcm_ioctl(struct snd_soc_component *component,
+	struct snd_pcm_substream *substream,
+	unsigned int cmd, void *arg)
+{
+	return snd_pcm_lib_ioctl(substream, cmd, arg);
+}
+
+static struct snd_soc_component_driver vplat_soc_drv = {
+	.pcm_construct	= vplat_pcm_construct,
+	.pcm_destruct	= vplat_pcm_destruct,
 	.open		= vplat_pcm_open,
 	.close		= vplat_pcm_close,
-	.ioctl		= snd_pcm_lib_ioctl,
+	.ioctl		= vplat_pcm_ioctl,
 	.hw_params	= vplat_pcm_hw_params,
 	.prepare    = vplat_pcm_prepare,
 	.trigger	= vplat_pcm_trigger,
 	.pointer	= vplat_pcm_pointer,
 	.mmap		= vplat_pcm_mmap,
-	
 	//.copy		= vplat_pcm_copy,
-};
-
-static struct snd_soc_platform_driver vplat_soc_drv = {
-	.ops		= &vplat_pcm_ops,
-	.pcm_new	= vplat_pcm_new,
-	.pcm_free	= vplat_pcm_free_buffers,
 };
 
 
@@ -536,15 +561,14 @@ static int vplat_probe(struct platform_device *pdev) {
 	printk("%s,line:%d\n",__func__,__LINE__);
 	
 	ret = snd_soc_register_component(&pdev->dev, &vplat_cpudai_component,
-					&vplat_cpudai_dai, 1);
+		&vplat_cpudai_dai, 1);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Could not register CPU DAI: %d\n", ret);
 		ret = -EBUSY;
 		return ret;
 	}
 	
-	
-	ret = snd_soc_register_platform(&pdev->dev, &vplat_soc_drv);
+	ret = snd_soc_register_component(&pdev->dev, &vplat_soc_drv, NULL, 0);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Could not register platform: %d\n", ret);
 		ret = -EBUSY;
@@ -556,7 +580,7 @@ static int vplat_probe(struct platform_device *pdev) {
 
 static int vplat_remove(struct platform_device *pdev){
 	printk("%s,line:%d\n",__func__,__LINE__);
-	snd_soc_unregister_platform(&pdev->dev);
+	snd_soc_unregister_component(&pdev->dev);
 	snd_soc_unregister_component(&pdev->dev);
 	return 0;
 }
