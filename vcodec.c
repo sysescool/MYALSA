@@ -28,6 +28,7 @@ static struct snd_soc_component_driver soc_vcodec_drv = {
 	.remove = vcodec_remove,
 	//.read = vcodec_reg_read,
 	//.write = vcodec_reg_write,
+	.use_pmdown_time = 0,
 };
 
 
