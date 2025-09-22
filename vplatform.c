@@ -30,7 +30,8 @@ static const struct snd_pcm_hardware vplat_pcm_hardware = {
 	.formats		= SNDRV_PCM_FMTBIT_S16_LE |	//所支持的音频数据格式
 						SNDRV_PCM_FMTBIT_U16_LE |
 						SNDRV_PCM_FMTBIT_U8 |
-						SNDRV_PCM_FMTBIT_S8,
+						SNDRV_PCM_FMTBIT_S8 |
+						SNDRV_PCM_FMTBIT_S24_LE,
 	.rates			= SNDRV_PCM_RATE_8000_192000 | 
 						SNDRV_PCM_RATE_KNOT,
 	.rate_min			= 8000,
