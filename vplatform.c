@@ -58,6 +58,9 @@ static const struct snd_soc_component_driver vplat_cpudai_component = {
 
 static int vplat_pcm_hw_params(struct snd_pcm_substream *substream, 
 			struct snd_pcm_hw_params *params) {
+
+	printk("-----%s----\n",__func__);
+
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	unsigned long totbytes = params_buffer_bytes(params);
     
@@ -84,6 +87,8 @@ static int vplat_pcm_hw_params(struct snd_pcm_substream *substream,
 
 static int vplat_pcm_prepare(struct snd_pcm_substream *substream)
 {
+	printk("-----%s----\n",__func__);
+
     /* 准备数据传输 */
 
     /* 复位各种状态信息 */
@@ -110,7 +115,7 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			/* 启动定时器, 模拟数据传输 */
 			playback_info.be_running = 1;
-			
+			printk("-----%s %d----: playback buffer using\n",__func__, cmd);
 			break;
 
 		case SNDRV_PCM_TRIGGER_STOP:
@@ -118,7 +123,7 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 			/* 停止定时器 */
 			playback_info.be_running = 0;
-			
+			printk("-----%s %d----: playback buffer not using\n",__func__, cmd);
 			break;
 
 		default:
@@ -132,7 +137,7 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			/* catpure开始接收数据 */
 			capture_info.be_running = 1;
-			
+			printk("-----%s %d----: capture buffer using\n",__func__, cmd);
 			break;
 
 		case SNDRV_PCM_TRIGGER_STOP:
@@ -140,7 +145,7 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 			/* catpure停止接收数据 */
 			capture_info.be_running = 0;
-			
+			printk("-----%s %d----: capture buffer not using\n",__func__, cmd);
 			break;
 
 		default:
@@ -163,6 +168,9 @@ static int vplat_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 
 
 static int vplat_pcm_new(struct snd_soc_pcm_runtime *rtd) {
+
+	printk("-----%s----\n",__func__);
+
 	struct snd_card *card = rtd->card->snd_card;
 	struct snd_pcm *pcm = rtd->pcm;
 	
@@ -221,6 +229,9 @@ static int vplat_pcm_new(struct snd_soc_pcm_runtime *rtd) {
 
 
 static void vplat_pcm_free_buffers(struct snd_pcm *pcm){
+
+	printk("-----%s----\n",__func__);
+
 	struct snd_pcm_substream *substream;
 	struct snd_dma_buffer *buf;
 	int stream;
@@ -341,7 +352,8 @@ static int vplat_remove(struct platform_device *pdev){
 }
 
 static void vplat_pdev_release(struct device *dev)
-{
+{	
+	printk("-----%s----\n",__func__);
 }
 
 static struct platform_device vplat_pdev = {
