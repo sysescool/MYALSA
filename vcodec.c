@@ -6,7 +6,7 @@
 #include <sound/soc.h>
 
 
-static int vcodec_probe(struct snd_soc_codec *codec)
+static int vcodec_probe(struct snd_soc_component *component)
 {
 	//int ret;
 	printk("-----%s----\n",__func__);
@@ -18,18 +18,17 @@ static int vcodec_probe(struct snd_soc_codec *codec)
 	return 0;
 }
 
-static int vcodec_remove(struct snd_soc_codec *codec)
+static void vcodec_remove(struct snd_soc_component *component)
 {
 	printk("-----%s----\n",__func__);
-	return 0;
 }
 
-static struct snd_soc_codec_driver soc_vcodec_drv = {
+static struct snd_soc_component_driver soc_vcodec_drv = {
 	.probe = vcodec_probe,
 	.remove = vcodec_remove,
 	//.read = vcodec_reg_read,
 	//.write = vcodec_reg_write,
-	.ignore_pmdown_time = 1,
+	.use_pmdown_time = 0,
 };
 
 
@@ -132,8 +131,9 @@ static int codec_probe(struct platform_device *pdev) {
 	
 	printk("-----%s----\n",__func__);
 	
-	ret = snd_soc_register_codec(&pdev->dev, &soc_vcodec_drv,
-				vcodec_dai, ARRAY_SIZE(vcodec_dai));
+	ret = snd_soc_register_component(&pdev->dev, &soc_vcodec_drv,
+		vcodec_dai, ARRAY_SIZE(vcodec_dai));
+
 	if (ret < 0) {
 		dev_err(&pdev->dev, "register codec failed\n");
 		return -1;

@@ -64,14 +64,16 @@ static struct snd_soc_ops my_card_ops = {
 	.hw_params = my_card_hw_params,
 };
 
+SND_SOC_DAILINK_DEFS(my_card,
+	DAILINK_COMP_ARRAY(COMP_CPU("vplat.0")),
+	DAILINK_COMP_ARRAY(COMP_CODEC("vcodec.0", "vcodec_dai")),
+	DAILINK_COMP_ARRAY(COMP_PLATFORM("vplat.0")));
+
 static struct snd_soc_dai_link my_card_dai_link[] = {
 	{
 		.name		= "my-codec",
 		.stream_name	= "MY-CODEC",
-		.codec_name	= "vcodec.0",
-		.codec_dai_name = "vcodec_dai",
-		.cpu_dai_name	= "vplat.0",
-		.platform_name	= "vplat.0",
+		SND_SOC_DAILINK_REG(my_card),
 		.init		= my_card_init,
 		.ops		= &my_card_ops,
 	},
