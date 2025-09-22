@@ -7,8 +7,9 @@
 #include <linux/dma-mapping.h>
 
 #include <linux/timer.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/workqueue.h>
+#include <linux/fs.h>
 
 struct vplat_info {
     unsigned int 	buf_max_size;
@@ -103,7 +104,6 @@ static struct file *vfs_open_file(char *file_path)
 }
 
 static int vfs_write_file_append(struct file *fp, char *buf, size_t len) {
-	mm_segment_t old_fs;
 	static loff_t pos = 0;
 	int buf_len;
 
@@ -111,12 +111,9 @@ static int vfs_write_file_append(struct file *fp, char *buf, size_t len) {
 		printk(KERN_ERR"write file error, fp is null!");
 		return -1;
 	}
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
-	buf_len = vfs_write(fp, buf, len, &pos);
-	set_fs(old_fs);
 	
-
+	buf_len = kernel_write(fp, buf, len, &pos);
+	
 	if (buf_len < 0)
 		return -1;
 	if (buf_len != len)
@@ -510,7 +507,7 @@ static int vplat_pcm_mmap(struct snd_soc_component *component,
 	if (substream->runtime != NULL) {
 		runtime = substream->runtime;
 
-		return dma_mmap_writecombine(substream->pcm->card->dev, vma,
+		return dma_mmap_coherent(substream->pcm->card->dev, vma,
 					     runtime->dma_area,
 					     runtime->dma_addr,
 					     runtime->dma_bytes);

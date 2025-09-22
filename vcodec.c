@@ -6,7 +6,7 @@
 #include <sound/soc.h>
 
 
-static int vcodec_probe(struct snd_soc_codec *codec)
+static int vcodec_probe(struct snd_soc_component *component)
 {
 	//int ret;
 	printk("-%s,line:%d\n",__func__,__LINE__);
@@ -18,18 +18,16 @@ static int vcodec_probe(struct snd_soc_codec *codec)
 	return 0;
 }
 
-static int vcodec_remove(struct snd_soc_codec *codec)
+static void vcodec_remove(struct snd_soc_component *component)
 {
 	printk("-%s,line:%d\n",__func__,__LINE__);
-	return 0;
 }
 
-static struct snd_soc_codec_driver soc_vcodec_drv = {
+static struct snd_soc_component_driver soc_vcodec_drv = {
 	.probe = vcodec_probe,
 	.remove = vcodec_remove,
 	//.read = vcodec_reg_read,
 	//.write = vcodec_reg_write,
-	.ignore_pmdown_time = 1,
 };
 
 
@@ -132,7 +130,7 @@ static int codec_probe(struct platform_device *pdev) {
 	
 	printk("-%s,line:%d\n",__func__,__LINE__);
 	
-	ret = snd_soc_register_codec(&pdev->dev, &soc_vcodec_drv,
+	ret = snd_soc_register_component(&pdev->dev, &soc_vcodec_drv,
 				vcodec_dai, ARRAY_SIZE(vcodec_dai));
 	if (ret < 0) {
 		dev_err(&pdev->dev, "register codec failed\n");
@@ -144,7 +142,7 @@ static int codec_probe(struct platform_device *pdev) {
 
 static int codec_remove(struct platform_device *pdev){
 	printk("-%s,line:%d\n",__func__,__LINE__);
-	snd_soc_unregister_codec(&pdev->dev);
+	snd_soc_unregister_component(&pdev->dev);
 	return 0;
 }
 
