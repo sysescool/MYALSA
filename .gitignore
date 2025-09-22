@@ -115,3 +115,4 @@ drivers/arisc/binary/arisc
 modules/eurasia_km/eurasiacon/binary2_sunxi_android_release/
 
 *.mod
+play_to_cap
